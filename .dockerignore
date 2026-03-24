@@ -12,7 +12,8 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 *.md
-prisma/migrations
+# Keep migrations for deployment
+# prisma/migrations
 prisma/dev.db
 prisma/dev.db-journal
 coverage

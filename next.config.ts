@@ -10,7 +10,6 @@ const ContentSecurityPolicy = `
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  upgrade-insecure-requests;
 `;
 
 const securityHeaders = [
