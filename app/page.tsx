@@ -21,12 +21,6 @@ const MODES = {
   LONG: "long" as const,
 };
 
-const INITIAL_TASKS: Task[] = [
-  { id: "1", text: "Design system updates", status: "todo" },
-  { id: "2", text: "Review PR for dashboard", status: "in-progress" },
-  { id: "3", text: "Draft project proposal", status: "complete" },
-];
-
 export default function Home() {
   const [mode, setMode] = useState<"work" | "short" | "long">(MODES.WORK);
   const [isActive, setIsActive] = useState(false);
@@ -38,7 +32,8 @@ export default function Home() {
   });
   const [showSettings, setShowSettings] = useState(false);
 
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -57,6 +52,23 @@ export default function Home() {
       if (interval) clearInterval(interval);
     };
   }, [isActive, timeLeft]);
+
+  useEffect(() => {
+    const fetchTodos = async () => {
+      try {
+        const response = await fetch("/api/todos");
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch todos:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTodos();
+  }, []);
 
   const handleModeChange = (newMode: "work" | "short" | "long") => {
     setMode(newMode);
@@ -89,24 +101,57 @@ export default function Home() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const addTask = (e: React.FormEvent) => {
+  const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskText.trim()) return;
-    const newTask: Task = {
-      id: Date.now().toString(),
-      text: newTaskText,
-      status: "todo",
-    };
-    setTasks([...tasks, newTask]);
+    try {
+      const response = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newTaskText, status: "todo" }),
+      });
+      if (response.ok) {
+        const newTask = await response.json();
+        setTasks([...tasks, newTask]);
+      }
+    } catch (error) {
+      console.error("Failed to add task:", error);
+    }
     setNewTaskText("");
   };
 
-  const moveTask = (id: string, newStatus: Task["status"]) => {
+  const moveTask = async (id: string, newStatus: Task["status"]) => {
+    const previousTasks = tasks;
     setTasks(tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)));
+    try {
+      const response = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) {
+        setTasks(previousTasks);
+      }
+    } catch (error) {
+      console.error("Failed to move task:", error);
+      setTasks(previousTasks);
+    }
   };
 
-  const deleteTask = (id: string) => {
+  const deleteTask = async (id: string) => {
+    const previousTasks = tasks;
     setTasks(tasks.filter((t) => t.id !== id));
+    try {
+      const response = await fetch(`/api/todos/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        setTasks(previousTasks);
+      }
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      setTasks(previousTasks);
+    }
   };
 
   const getTasksByStatus = (status: Task["status"]) => tasks.filter((t) => t.status === status);
