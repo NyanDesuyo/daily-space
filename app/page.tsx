@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { User, Settings2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Settings2, GripVertical } from "lucide-react";
 
 export interface Task {
   id: string;
@@ -41,6 +41,8 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<Task["status"] | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -113,6 +115,35 @@ export default function Home() {
     if (m === "work") return "Work";
     if (m === "short") return "Short Break";
     return "Long Break";
+  };
+
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggedTaskId(taskId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverStatus(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverStatus(status);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStatus(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault();
+    if (draggedTaskId) {
+      moveTask(draggedTaskId, status);
+    }
+    setDraggedTaskId(null);
+    setDragOverStatus(null);
   };
 
   return (
@@ -249,7 +280,16 @@ export default function Home() {
             <div className="flex-1 overflow-x-auto p-6">
               <div className="flex flex-col md:flex-row gap-6 h-full min-w-[800px] md:min-w-0">
                 {(["todo", "in-progress", "complete"] as const).map((status) => (
-                  <div key={status} className="flex-1 flex flex-col min-w-[280px]">
+                  <div 
+                    key={status} 
+                    className={`flex-1 flex flex-col min-w-[280px] rounded-xl transition-all duration-200 ${
+                      dragOverStatus === status ? "bg-primary/10 ring-2 ring-primary/50" : ""
+                    }`}
+                    onDragOver={(e) => handleDragOver(e, status)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, status)}
+                    onDragEnd={handleDragEnd}
+                  >
                     <div className="flex items-center justify-between mb-4 px-2">
                       <h3 className="uppercase text-xs font-black tracking-widest text-on-surface-variant">
                         {status.replace("-", " ")} ({getTasksByStatus(status).length})
@@ -276,10 +316,20 @@ export default function Home() {
                         </form>
                       )}
 
-                      {getTasksByStatus(status).map((task) => (
-                        <div key={task.id} className="bg-surface-container-high p-4 rounded-xl border border-white/5 group">
+{getTasksByStatus(status).map((task) => (
+                        <div 
+                          key={task.id} 
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, task.id)}
+                          className={`bg-surface-container-high p-4 rounded-xl border border-white/5 group cursor-grab active:cursor-grabbing transition-all ${
+                            draggedTaskId === task.id ? "opacity-50 scale-95" : ""
+                          }`}
+                        >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="flex gap-3 flex-1">
+                            <div className="flex gap-2 items-center flex-1">
+                              <div className="cursor-grab text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+                                <GripVertical className="h-4 w-4" />
+                              </div>
                               <button
                                 onClick={() => moveTask(task.id, task.status === "complete" ? "todo" : "complete")}
                                 className={`mt-0.5 shrink-0 transition-colors ${
@@ -296,7 +346,7 @@ export default function Home() {
                                   </svg>
                                 )}
                               </button>
-                              <span className={`text-sm font-medium ${task.status === "complete" ? "line-through text-on-surface-variant" : "text-white"}`}>
+                              <span className={`text-sm font-medium flex-1 ${task.status === "complete" ? "line-through text-on-surface-variant" : "text-white"}`}>
                                 {task.text}
                               </span>
                             </div>
