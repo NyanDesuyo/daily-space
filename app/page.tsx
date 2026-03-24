@@ -1,65 +1,78 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { User } from "lucide-react";
+import { PomodoroTimer, type TimerSettings } from "./components/PomodoroTimer";
+import { SettingsModal } from "./components/SettingsModal";
+import { TaskManager } from "./components/TaskManager";
+import type { Task } from "./components/TaskModal";
 
 export default function Home() {
+  const [timerSettings, setTimerSettings] = useState<TimerSettings>({
+    work: 25,
+    shortBreak: 5,
+    longBreak: 15,
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: "1", title: "Review project requirements", status: "todo" },
+    { id: "2", title: "Set up development environment", status: "inprogress" },
+    { id: "3", title: "Create initial design mockups", status: "complete" },
+  ]);
+
+  const handleAddTask = (title: string) => {
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title,
+      status: "todo",
+    };
+    setTasks((prev) => [...prev, newTask]);
+  };
+
+  const handleUpdateTaskStatus = (id: string, status: Task["status"]) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? { ...task, status } : task))
+    );
+  };
+
+  const handleDeleteTask = (id: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex min-h-screen flex-col bg-surface">
+      <header className="flex items-center justify-between px-8 py-6">
+        <h1 className="text-xl font-bold tracking-tighter text-white">
+          Luminous Deep
+        </h1>
+        <button
+          className="text-on-surface-variant hover:text-white transition-colors"
+          aria-label="User profile"
+        >
+          <User className="h-6 w-6" />
+        </button>
+      </header>
+
+      <main className="flex flex-1 flex-col items-center justify-center px-6 -mt-12">
+        <PomodoroTimer
+          settings={timerSettings}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
       </main>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={timerSettings}
+        onSave={setTimerSettings}
+      />
+
+      <TaskManager
+        tasks={tasks}
+        onAddTask={handleAddTask}
+        onUpdateTaskStatus={handleUpdateTaskStatus}
+        onDeleteTask={handleDeleteTask}
+      />
     </div>
   );
 }
