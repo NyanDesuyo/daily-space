@@ -34,6 +34,19 @@ export default function Home() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const savedSettings = localStorage.getItem("timerSettings");
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings(parsed);
+        setTimeLeft(parsed.work * 60);
+      } catch (e) {
+        console.error("Failed to parse timer settings", e);
+      }
+    }
+  }, []);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -93,6 +106,7 @@ export default function Home() {
     setTimeLeft(newSettings[mode] * 60);
     setIsActive(false);
     setShowSettings(false);
+    localStorage.setItem("timerSettings", JSON.stringify(newSettings));
   };
 
   const formatTime = (seconds: number) => {
