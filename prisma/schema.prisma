@@ -10,10 +10,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Todo {
-  id        String   @id @default(cuid())
-  text      String
-  status    String   @default("todo")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Settings {
+  id         String   @id @default("global")
+  work       Int      @default(25)
+  shortBreak Int      @default(5)
+  longBreak  Int      @default(15)
+  updatedAt  DateTime @updatedAt
+}
+
+model TimerState {
+  id         String   @id @default("global")
+  mode       String   @default("work")
+  isRunning  Boolean  @default(false)
+  timeLeft   Int      @default(1500) // 25 mins in seconds
+  updatedAt  DateTime @updatedAt
+}
+
+model DailyRecord {
+  id         String   @id @default(cuid())
+  date       String   @unique // YYYY-MM-DD
+  workTime   Int      @default(0) // seconds
+  shortBreakTime Int  @default(0) // seconds
+  longBreakTime Int   @default(0) // seconds
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
